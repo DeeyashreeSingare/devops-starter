@@ -1,0 +1,4 @@
+node_modules
+.git
+.gitlab-ci.yml
+project.tar.gz
