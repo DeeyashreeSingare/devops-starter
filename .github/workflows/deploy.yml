@@ -20,10 +20,10 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create tarball and upload to EC2
-        run: |
-          tar --warning=no-file-changed --exclude='.git' -czf project.tar.gz .
-          scp project.tar.gz ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/project.tar.gz
+     - name: Create tarball and upload to EC2
+  run: |
+    tar --exclude='.git' -czf project.tar.gz . || true
+    scp project.tar.gz ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/project.tar.gz
 
       - name: SSH and Deploy on EC2
         run: |
