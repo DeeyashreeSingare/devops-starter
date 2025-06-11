@@ -10,33 +10,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Setup SSH key
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+      - name: Create tarball and upload to EC2
+        run: |
+          tar --warning=no-file-changed --exclude='.git' -czf project.tar.gz .
+          scp project.tar.gz ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/project.tar.gz
 
-    - name: Copy project to EC2
-  run: |
-    tar --warning=no-file-changed --exclude='.git' -czf project.tar.gz .
-    scp project.tar.gz ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/project.tar.gz
-
-
-    - name: SSH and deploy
-      run: |
-        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          export DOCKER_IMAGE=chessboard
-          rm -rf ~/deploy-folder
-          mkdir -p ~/deploy-folder
-          tar -xzf ~/project.tar.gz -C ~/deploy-folder
-          cd ~/deploy-folder
-          docker stop $DOCKER_IMAGE || true
-          docker rm $DOCKER_IMAGE || true
-          docker build -t $DOCKER_IMAGE .
-          docker run -d -p 80:80 --name $DOCKER_IMAGE $DOCKER_IMAGE
-        EOF
+      - name: SSH and Deploy on EC2
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            export DOCKER_IMAGE=chessboard
+            rm -rf ~/deploy-folder
+            mkdir -p ~/deploy-folder
+            tar -xzf ~/project.tar.gz -C ~/deploy-folder
+            cd ~/deploy-folder
+            docker stop $DOCKER_IMAGE || true
+            docker rm $DOCKER_IMAGE || true
+            docker build -t $DOCKER_IMAGE .
+            docker run -d -p 80:80 --name $DOCKER_IMAGE $DOCKER_IMAGE
+          EOF
